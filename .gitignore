@@ -32,6 +32,6 @@ coverage
 
 # for python
 
-/__pycache__/
+__pycache__/
 
 /dist/

@@ -22,4 +22,4 @@ class UserUtl():
             self.data['users'].append(usr.model_dump())
         else:
             self.data['users'] = [usr.model_dump()]
-            self.db.write_data(self.data)
+        self.db.write_data(self.data)

@@ -7,7 +7,7 @@ class Getdb:
         self.data = {}
     
     def write_data(self, data):
-        with open(self.file_name, "a", encoding='utf-8') as f:
+        with open(self.file_name, "w", encoding='utf-8') as f:
             json.dump(data, f)
         self.data = data
 
