@@ -11,3 +11,7 @@ class User(UserIn):
 
 class UserDb(UserIn):
     hashed_pass: str
+    
+class TokenRequest(BaseModel):
+    mail: str
+    password: str

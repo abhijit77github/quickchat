@@ -35,3 +35,10 @@ coverage
 __pycache__/
 
 /dist/
+
+# venv 
+quickchat_env/
+
+
+# local temp files
+backend/my_db.json

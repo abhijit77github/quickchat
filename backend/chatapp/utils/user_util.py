@@ -15,7 +15,7 @@ class UserUtl():
             for usr in users:
                 if usr.get('mail') == mail:
                     return UserDb(mail=usr.get('mail'), hashed_pass=usr.get('hashed_pass'))
-            return False
+            return None
         
     def add_user(self, usr: UserDb):
         if self.data.get('users'):
