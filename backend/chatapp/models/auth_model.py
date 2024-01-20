@@ -15,3 +15,5 @@ class UserDb(UserIn):
 class TokenRequest(BaseModel):
     mail: str
     password: str
+    
+# TODO TokenData is used to store the data of the token

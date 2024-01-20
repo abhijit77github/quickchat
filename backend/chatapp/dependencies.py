@@ -1,5 +1,5 @@
 import json
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header, WebSocketException, WebSocket
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Annotated, Optional
 from .project_constants import SECRET_KEY, ALGORITHM
@@ -9,6 +9,14 @@ from starlette.requests import Request
 from fastapi.security.utils import get_authorization_scheme_param
 
 bearer_scheme = HTTPBearer()
+
+class GenException(Exception):
+    def __init__(self, status_code: int, detail: str, headers: str) -> None:
+        self.status_code = status_code
+        self.detail = detail
+        self.headers = headers
+        super().__init__(self.detail)
+    
 
 class Getdb:
     def __init__(self) -> None:
@@ -29,37 +37,9 @@ class Getdb:
             self.data = {}
             return {}
 
-
-class ValidateToken(HTTPBearer):
-    async def __call__(
-        self, request: Request
-    ) -> Optional[HTTPAuthorizationCredentials]:
-        creds = await super().__call__(request)
-        # authorization = request.headers.get("Authorization")
-        # scheme, credentials = get_authorization_scheme_param(authorization)
-        # if not (authorization and scheme and credentials):
-        #     if self.auto_error:
-        #         raise HTTPException(
-        #             status_code=status.HTTP_403_FORBIDDEN, detail="Not authenticated"
-        #         )
-        #     else:
-        #         return None
-        # if scheme.lower() != "bearer":
-        #     if self.auto_error:
-        #         raise HTTPException(
-        #             status_code=status.HTTP_403_FORBIDDEN,
-        #             detail="Invalid authentication credentials",
-        #         )
-        #     else:
-        #         return None
-            
-        self.validate_token(creds.credentials)
-        return self.user
-        # return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)
-
-
-    def validate_token(self, token: str) -> bool:
-        credentials_exception = HTTPException(
+class BaseTokenValidation:
+   def validate_token(self, token: str) -> bool:
+        credentials_exception = GenException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
@@ -73,6 +53,38 @@ class ValidateToken(HTTPBearer):
             self.user = UserIn(name=username, mail=mail)
         except JWTError:
             raise credentials_exception
-    
-    # def get_current_user(self):
-    #     return self.user
+
+class ValidateToken(HTTPBearer, BaseTokenValidation):
+    async def __call__(
+        self, request: Request
+    ) -> Optional[HTTPAuthorizationCredentials]:
+        creds = await super().__call__(request)
+        try:
+            self.validate_token(creds.credentials)            
+            return self.user
+        except Exception as e:
+            print(e)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid authentication credentials",
+            )
+        
+class WsTokenValidation(BaseTokenValidation):
+    def __call__(self, ws: WebSocket) ->Optional[UserIn]: # authorization: Annotated['str', Header()]        
+        scheme, cred = ws.headers.get('authorization').split(' ')
+        if scheme.lower() != "bearer":
+            raise WebSocketException(
+                code=status.WS_1008_POLICY_VIOLATION,
+                reason="Invalid authentication credentials",
+            )
+        self.token = cred
+        try:
+            self.validate_token(self.token)            
+            return self.user
+        except Exception as e:
+            raise WebSocketException(
+                code=status.WS_1008_POLICY_VIOLATION,
+                reason="Invalid authentication credentials",
+            )
+        
+            
